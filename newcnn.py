@@ -121,7 +121,7 @@ model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accur
 start = time.time()
 print("Training...")
 model_info = model.fit(train_features, train_labels, 
-                       batch_size=128, epochs=200, 
+                       batch_size=128, epochs=100, 
                        validation_data = (test_features, test_labels), 
                        verbose=0)
 end = time.time()
