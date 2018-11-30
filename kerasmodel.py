@@ -6,7 +6,7 @@ from keras.datasets import cifar10
 from keras.utils import np_utils
 from sklearn.model_selection import train_test_split
 from keras.callbacks import EarlyStopping
-from keras.layers.convolutional import Convolution2D, MaxPooling2D
+from keras.layers.convolutional import Conv2D, MaxPooling2D
 from keras.layers import Activation
 from keras.layers.normalization import BatchNormalization
 from keras.layers import Dropout
@@ -14,11 +14,6 @@ from keras.models import Sequential
 from keras.layers import Dense, Flatten
 from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
-from PIL import Image
-
-img = Image.open('laugh.jpg')
-arr = np.array(img)
-
 
 (x_train, y_train), (x_test, y_test) = cifar10.load_data()
 
@@ -39,12 +34,14 @@ x_test = x_test / 255.0
 def addgaussian(images):
     print('entering noise adder')
     noisy_images = images
-    noise = np.random.normal(loc = 0.0, scale = .25, size = (32,32,3))
+    noise = np.random.normal(loc = 0.0, scale = .125, size = (32,32,3))
+    counter = 0
     for i in range (len(noisy_images)):
-        odds = np.random.randint(1,11) 
+        odds = np.random.randint(1,11)
         if odds == 10:
             print('adding noise to image', i)
             noisy_images[i] = images[i] + noise
+            counter = counter + 1
             for a in range(32):
                 for j in range(32):
                     for k in range(3):
@@ -52,11 +49,13 @@ def addgaussian(images):
                             noisy_images[i][a][j][k] = 0
                         if noisy_images[i][a][j][k] > 255:
                             noisy_images[i][a][j][k] = 255
+    counter = counter / 500
+    print('Percent of noisy data = ', counter)
     return noisy_images
 
 
 def examplegaus(images, index):
-    noise = np.random.normal(loc = 0.0, scale = .07, size = (32,32,3))
+    noise = np.random.normal(loc = 0.0, scale = .125, size = (32,32,3))
     noisy_image = images[index] + noise
     for a in range(32):
                 for j in range(32):
@@ -93,22 +92,24 @@ def showimage(index):
 
 print("grayscaling images...")
 examplegaus(x_train, np.random.randint(0,40000))
-#x_train_new = addgaussian(x_train)
-# x_train_new = grayscale(x_train_new)
-# x_test_new  = grayscale(x_test)
+x_train_new = addgaussian(x_train)
+print('grayscaling training data...')
+x_train_new = grayscale(x_train_new)
+print('grayscaling testing data...')
+x_test_new  = grayscale(x_test)
 # showimage(64)
 
 
 #split data into training and validation arrays
 print("splitting data into trainng and testing")
 x_train_new, x_val_new, y_train, y_val = train_test_split(x_train_new, y_train, test_size=0.2, random_state=0)
-print('X_train_gray shape:', x_train_new.shape)
-print('X_val_gray shape:', x_val_new.shape)
+print('X_train_new shape:', x_train_new.shape)
+print('X_val_new shape:', x_val_new.shape)
 
 
 # define constants
 batch_size = 128
-epoch_max = 100
+epoch_max = 50
 early_stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=0)
 
 def fit(model):
@@ -162,11 +163,12 @@ plt.show()
 
 # convolutional hidden layers
 for i in range(6):
-    model.add(Convolution2D(32, (3, 3), 
-                        input_shape = (imgsize, imgsize, imgchannels), 
-                        border_mode = 'same', activation = 'relu'))
+    model.add(Conv2D(64, (3,3), input_shape = (imgsize, imgsize, imgchannels), 
+                     padding = 'same', activation = 'relu',
+                     ))
     if (i + 1) % 2 == 0:
-        model.add(MaxPooling2D(pool_size = (2, 2), border_mode = 'same'))
+        model.add(MaxPooling2D(pool_size = (2, 2), padding = 'same',
+                               strides=None))
     
 print('Output shape of last concolution layers: {0}'.format(model.output_shape))
 model.add(Flatten())
@@ -174,8 +176,7 @@ model.add(Flatten())
 # fully connected hidden layers
 for i in range(2):
     model.add(Dense(512))
-    model.add(BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001, center=True, scale=True, beta_initializer='zeros', gamma_initializer='ones', moving_mean_initializer='zeros', moving_variance_initializer='ones', beta_regularizer=None, gamma_regularizer=None, beta_constraint=None, gamma_constraint=None)
-)
+    model.add(BatchNormalization())
     model.add(Activation('relu'))
     
 # output layer
@@ -189,11 +190,12 @@ print("Now training...")
 starttime = time.time()
 hist = model.fit_generator(
                      datagen.flow(x_train_new, y_train, batch_size=batch_size),
-                     steps_per_epoch = x_train_new.shape[0]/batch_size,
-                     nb_epoch = epoch_max,
+                     steps_per_epoch = x_train_new.shape[0],
+                     epochs = epoch_max,
                      validation_data = (x_val_new, y_val),
                      callbacks = [early_stop],
                      verbose=0)
 print("--- training took %s seconds ---" % (time.time() - starttime))
+
 # evaluation
 evaluate(model, hist, 'output/fig-val-loss.png')
