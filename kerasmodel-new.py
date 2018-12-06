@@ -14,6 +14,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Flatten
 from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import plot_model
+from keras.models import model_from_json
 import numpy as np
 
 (x_train, y_train), (x_test, y_test) = cifar10.load_data()
@@ -111,7 +112,7 @@ print('X_val_new shape:', x_val_new.shape)
 
 # define constants
 batch_size = 64
-epoch_max = 50
+epoch_max = 60
 early_stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=0)
 
 def fit(model):
@@ -206,6 +207,27 @@ hist = model.fit_generator(
                      callbacks = [early_stop],
                      verbose=0)
 
+# serialize model to JSON
+model_json = model.to_json()
+with open("model.json", "w") as json_file:
+    json_file.write(model_json)
+# serialize weights to HDF5
+model.save_weights("model.h5")
+print("Saved model to disk")
+ 
+# later...
+ 
+# load json and create model
+json_file = open('model.json', 'r')
+loaded_model_json = json_file.read()
+json_file.close()
+loaded_model = model_from_json(loaded_model_json)
+# load weights into new model
+loaded_model.load_weights("model.h5")
+print("Loaded model from disk")
+ 
+
+
 # Plot training & validation accuracy values
 print("--- training took %s seconds ---" % (time.time() - starttime))
 plt.plot(hist.history['acc'])
@@ -228,4 +250,4 @@ plt.show()
 #display model
 #plot_model(model, to_file='modelplot.png')
 # evaluation
-evaluate(model, hist, 'output/fig-val-loss.png')
+#evaluate(model, hist, 'output/fig-val-loss.png')
