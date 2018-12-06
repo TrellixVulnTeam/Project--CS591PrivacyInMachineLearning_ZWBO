@@ -13,6 +13,7 @@ from keras.layers import Dropout
 from keras.models import Sequential
 from keras.layers import Dense, Flatten
 from keras.preprocessing.image import ImageDataGenerator
+from keras.utils import plot_model
 import numpy as np
 
 (x_train, y_train), (x_test, y_test) = cifar10.load_data()
@@ -39,9 +40,10 @@ def addgaussian(images):
     for i in range (len(noisy_images)):
         odds = np.random.randint(1,11)
         if odds == 10:
-            print('adding noise to image', i)
+            #print('adding noise to image', i)
             noisy_images[i] = images[i] + noise
             counter = counter + 1
+            #cap noisy images to 0 <= x <= 255
             for a in range(32):
                 for j in range(32):
                     for k in range(3):
@@ -50,7 +52,7 @@ def addgaussian(images):
                         if noisy_images[i][a][j][k] > 255:
                             noisy_images[i][a][j][k] = 255
     counter = counter / 500
-    print('Percent of noisy data = ', counter)
+    print('Percent of noisy data = ', counter, "%")
     return noisy_images
 
 
@@ -91,7 +93,7 @@ def showimage(index):
     plt.show()
 
 print("grayscaling images...")
-examplegaus(x_train, np.random.randint(0,40000))
+#examplegaus(x_train, np.random.randint(0,40000))
 x_train_new = addgaussian(x_train)
 print('grayscaling training data...')
 x_train_new = grayscale(x_train_new)
@@ -108,7 +110,7 @@ print('X_val_new shape:', x_val_new.shape)
 
 
 # define constants
-batch_size = 128
+batch_size = 64
 epoch_max = 50
 early_stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=0)
 
@@ -145,7 +147,7 @@ imgchannels = 1
 model = Sequential()
 
 #-- generate random images --#
-datagen = ImageDataGenerator(rotation_range = 20,
+createrandimg = ImageDataGenerator(rotation_range = 20,
                              width_shift_range = 0.1,
                              height_shift_range = 0.1,
                              shear_range = 0.1,
@@ -153,19 +155,25 @@ datagen = ImageDataGenerator(rotation_range = 20,
                              horizontal_flip = True,
                              fill_mode = 'nearest')
 
-# visualize some generated images
-plt.figure(figsize=(6, 6))
-(X_batch, Y_batch) = datagen.flow(x_train_new, y_train, batch_size = 9).next()
-for i in range(9):
-    plt.subplot(3, 3, (i + 1))
-    plt.imshow(X_batch[i, :, :, 0], cmap=plt.get_cmap('gray'), interpolation='none')
-plt.show()
+# # visualize some generated images
+# print('creating random images...')
+# plt.figure(figsize=(6, 6))
+# (x_batch, y_batch) = createrandimg.flow(x_train_new, y_train, batch_size = 9).next()
+# for i in range(9):
+#     plt.subplot(3, 3, (i + 1))
+#     plt.imshow(x_batch[i, :, :, 0], cmap=plt.get_cmap('gray'), interpolation='none')
+# plt.show()
+ 
+# print('y_batch shape:', x_batch.shape)
+# print('y_batch shape:', y_batch.shape)
+drop_rate = 0.2
 
 # convolutional hidden layers
 for i in range(6):
     model.add(Conv2D(64, (3,3), input_shape = (imgsize, imgsize, imgchannels), 
                      padding = 'same', activation = 'relu',
                      ))
+    model.add(Dropout(drop_rate))
     if (i + 1) % 2 == 0:
         model.add(MaxPooling2D(pool_size = (2, 2), padding = 'same',
                                strides=None))
@@ -173,11 +181,13 @@ for i in range(6):
 print('Output shape of last concolution layers: {0}'.format(model.output_shape))
 model.add(Flatten())
 
+
 # fully connected hidden layers
 for i in range(2):
-    model.add(Dense(512))
+    model.add(Dense(1024))
     model.add(BatchNormalization())
     model.add(Activation('relu'))
+    model.add(Dropout(drop_rate))
     
 # output layer
 model.add(Dense(nb_classes, activation = 'softmax'))
@@ -189,13 +199,33 @@ model.compile(loss = 'categorical_crossentropy', optimizer = 'adam', metrics = [
 print("Now training...")
 starttime = time.time()
 hist = model.fit_generator(
-                     datagen.flow(x_train_new, y_train, batch_size=batch_size),
-                     steps_per_epoch = x_train_new.shape[0],
+                     createrandimg.flow(x_train_new, y_train, batch_size=batch_size),
+                     steps_per_epoch = x_train_new.shape[0]/batch_size,
                      epochs = epoch_max,
                      validation_data = (x_val_new, y_val),
                      callbacks = [early_stop],
                      verbose=0)
-print("--- training took %s seconds ---" % (time.time() - starttime))
 
+# Plot training & validation accuracy values
+print("--- training took %s seconds ---" % (time.time() - starttime))
+plt.plot(hist.history['acc'])
+plt.plot(hist.history['val_acc'])
+plt.title('Model accuracy')
+plt.ylabel('Accuracy')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Test'], loc='upper left')
+plt.show()
+
+# Plot training & validation loss values
+plt.plot(hist.history['loss'])
+plt.plot(hist.history['val_loss'])
+plt.title('Model loss')
+plt.ylabel('Loss')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Test'], loc='upper left')
+plt.show()
+
+#display model
+#plot_model(model, to_file='modelplot.png')
 # evaluation
 evaluate(model, hist, 'output/fig-val-loss.png')
