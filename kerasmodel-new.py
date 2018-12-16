@@ -94,7 +94,7 @@ def showimage(index):
     plt.show()
 
 print("grayscaling images...")
-#examplegaus(x_train, np.random.randint(0,40000))
+examplegaus(x_train, np.random.randint(0,40000))
 x_train_new = addgaussian(x_train)
 print('grayscaling training data...')
 x_train_new = grayscale(x_train_new)
@@ -156,17 +156,17 @@ createrandimg = ImageDataGenerator(rotation_range = 20,
                              horizontal_flip = True,
                              fill_mode = 'nearest')
 
-# # visualize some generated images
-# print('creating random images...')
-# plt.figure(figsize=(6, 6))
-# (x_batch, y_batch) = createrandimg.flow(x_train_new, y_train, batch_size = 9).next()
-# for i in range(9):
-#     plt.subplot(3, 3, (i + 1))
-#     plt.imshow(x_batch[i, :, :, 0], cmap=plt.get_cmap('gray'), interpolation='none')
-# plt.show()
+# visualize some generated images
+print('creating random images...')
+plt.figure(figsize=(6, 6))
+(x_batch, y_batch) = createrandimg.flow(x_train_new, y_train, batch_size = 9).next()
+for i in range(9):
+    plt.subplot(3, 3, (i + 1))
+    plt.imshow(x_batch[i, :, :, 0], cmap=plt.get_cmap('gray'), interpolation='none')
+plt.show()
  
-# print('y_batch shape:', x_batch.shape)
-# print('y_batch shape:', y_batch.shape)
+print('y_batch shape:', x_batch.shape)
+print('y_batch shape:', y_batch.shape)
 drop_rate = 0.2
 
 # convolutional hidden layers
@@ -196,6 +196,8 @@ model.add(Dense(nb_classes, activation = 'softmax'))
 # compile model
 model.compile(loss = 'categorical_crossentropy', optimizer = 'adam', metrics = ['accuracy'])
 
+new_train_x = x_train_new[0:10000]
+new_train_y = y_train[0:10000]
 # training
 print("Now training...")
 starttime = time.time()
@@ -203,7 +205,7 @@ hist = model.fit_generator(
                      createrandimg.flow(x_train_new, y_train, batch_size=batch_size),
                      steps_per_epoch = x_train_new.shape[0]/batch_size,
                      epochs = epoch_max,
-                     validation_data = (x_val_new, y_val),
+                     validation_data = (new_train_x, new_train_y),
                      callbacks = [early_stop],
                      verbose=0)
 
