@@ -22,7 +22,8 @@ pip install numpy
 To run your own tests, you can run the file using 
 
 ```
-python kerasmodel-new.pu
+python3 kerasmodel-new.py
+python3 kerasmodel-sgd.py
 ```
 This will start the program.
 Please note you will get a demonstration plot of a comparison between a regular image and a noisy one. You should close this window to continue running the file.
