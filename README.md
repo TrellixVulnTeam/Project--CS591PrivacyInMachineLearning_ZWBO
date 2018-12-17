@@ -35,3 +35,6 @@ Please note you will get a demonstration plot of a comparison between a regular 
 * **Ronald Vargas**
 
 See also the list of [contributors](https://github.com/nsood98/Project--CS591PrivacyInMachineLearning/graphs/contributors) who participated in this project.
+
+## Acknowledgments
+https://github.com/haiphanNJIT/PrivateDeepLearning
