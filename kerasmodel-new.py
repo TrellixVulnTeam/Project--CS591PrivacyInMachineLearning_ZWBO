@@ -111,8 +111,8 @@ print('X_val_new shape:', x_val_new.shape)
 
 
 # define constants
-batch_size = 64
-epoch_max = 60
+batch_size = 128
+epoch_max = 70
 early_stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=0)
 
 def fit(model):

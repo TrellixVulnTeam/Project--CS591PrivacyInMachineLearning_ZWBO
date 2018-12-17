@@ -111,9 +111,10 @@ x_train_new, x_val_new, y_train, y_val = train_test_split(x_train_new, y_train, 
 print('X_train_new shape:', x_train_new.shape)
 print('X_val_new shape:', x_val_new.shape)
 
-
+#batch sizes tested: 64, 128 -- no outstanding improvement
+#epoch sizes 50,60,70 -- 70 provided most accuracy
 # define constants
-batch_size = 64
+batch_size = 128
 epoch_max = 70
 early_stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=0)
 
@@ -202,6 +203,8 @@ sgd = SGD(lr = lrate, momentum = 0.9, decay=decay, nesterov = False)
 # compile model
 model.compile(loss = 'categorical_crossentropy', optimizer = sgd, metrics = ['accuracy'])
 
+new_train_x = x_train_new[0:10000]
+new_train_y = y_train[0:10000]
 # training
 print("Now training...")
 starttime = time.time()
@@ -209,10 +212,9 @@ hist = model.fit_generator(
                      createrandimg.flow(x_train_new, y_train, batch_size=batch_size),
                      steps_per_epoch = x_train_new.shape[0]/batch_size,
                      epochs = epoch_max,
-                     validation_data = (x_val_new, y_val),
+                     validation_data = (new_train_x, new_train_y),
                      callbacks = [early_stop],
                      verbose=0)
-minutes = (time.time() - starttime)/60
 
 # serialize model to JSON
 model_json = model.to_json()
